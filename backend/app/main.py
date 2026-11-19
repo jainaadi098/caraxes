@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api import (
-    brand_assets, brand_documents, dashboard, findings, health,
+    brand_assets, brand_documents, dashboard, findings, github_webhook, health,
     knowledge_items, organisations, public, retrieval, sharing, submissions,
 )
 from app.core.auth import require_role
@@ -21,7 +21,7 @@ app = FastAPI(title="Caraxes API", version="0.1.0")
 @app.middleware("http")
 async def demo_passcode(request: Request, call_next):
     expected = settings.demo_passcode
-    exempt = request.url.path.startswith(("/health", "/public"))  # /public is open by design
+    exempt = request.url.path.startswith(("/health", "/public", "/webhooks"))  # /public and /webhooks are exempt
     if expected and request.method != "OPTIONS" and not exempt:
         supplied = request.headers.get("x-demo-key", "")
         if not secrets.compare_digest(supplied.encode(), expected.encode()):
@@ -52,3 +52,4 @@ app.include_router(submissions.router)
 app.include_router(sharing.router)
 app.include_router(findings.router)
 app.include_router(dashboard.router)
+app.include_router(github_webhook.router)

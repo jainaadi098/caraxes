@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     ocr_backend: str = "paddle"  # "paddle" locally, "gemini" on hosts that can't run PaddleOCR
     demo_passcode: str = ""      # when set, every request must send it (public demos)
 
+    github_webhook_secret: str = ""
+    github_token: str = ""
+    default_org_id: str = ""
+
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
 

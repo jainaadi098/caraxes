@@ -1,6 +1,13 @@
 import os
+from pathlib import Path
+import sys
 from unittest.mock import MagicMock, patch
 import pytest
+
+# Ensure backend root directory is on sys.path so 'app' is always importable
+backend_dir = Path(__file__).resolve().parents[1]
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
 # Ensure required environment variables exist for tests before any app module is loaded
 os.environ.setdefault("SUPABASE_URL", "https://mock.supabase.co")

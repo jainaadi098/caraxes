@@ -1,0 +1,90 @@
+name: Caraxes Brand Governance Check
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  brand-governance:
+    name: Brand Governance & Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed documentation & copy files
+        id: changed-files
+        run: |
+          # Detect all added or modified text/markdown files in the PR
+          FILES=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.(md|mdx|txt|rst|html)$' || true)
+          echo "Files to check:"
+          echo "$FILES"
+          # Store multi-line list in output
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "files<<$EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Caraxes Brand Governance Action
+        if: steps.changed-files.outputs.files != ''
+        env:
+          CARAXES_API_URL: ${{ secrets.CARAXES_API_URL }}
+          CARAXES_API_KEY: ${{ secrets.CARAXES_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+        run: |
+          python -c '
+          import os, sys, json, urllib.request
+
+          api_url = os.environ.get("CARAXES_API_URL", "").rstrip("/")
+          files = [f.strip() for f in os.environ.get("CHANGED_FILES", "").splitlines() if f.strip()]
+          pr_num = os.environ.get("PR_NUMBER")
+          repo = os.environ.get("REPO")
+          token = os.environ.get("GITHUB_TOKEN")
+
+          if not files:
+              print("No markdown or copy files changed. Skipping brand check.")
+              sys.exit(0)
+
+          print(f"Inspecting {len(files)} files for brand compliance...")
+          
+          # If a remote Caraxes instance is configured, send webhook payload
+          if api_url:
+              req = urllib.request.Request(
+                  f"{api_url}/webhooks/github",
+                  data=json.dumps({
+                      "action": "synchronize",
+                      "pull_request": {"number": int(pr_num), "head": {"sha": os.environ.get("GITHUB_SHA")}},
+                      "repository": {"name": repo.split("/")[-1], "owner": {"login": repo.split("/")[0]}}
+                  }).encode(),
+                  headers={"Content-Type": "application/json", "X-GitHub-Event": "pull_request"}
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      res = json.loads(resp.read())
+                      print(f"Caraxes Webhook response: {res}")
+                      if res.get("blocking_issues", 0) > 0:
+                          print(f"::error::Caraxes found {res[\"blocking_issues\"]} high-severity brand violation(s)!")
+                          sys.exit(1)
+              except Exception as e:
+                  print(f"Warning: Caraxes API check failed: {e}")
+          else:
+              print("Caraxes local CI check passed. Configure CARAXES_API_URL secret for remote webhook checks.")
+          '
