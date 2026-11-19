@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 import re
 from typing import Literal
 
@@ -8,6 +10,14 @@ from pydantic import BaseModel
 from app.core.config import get_settings
 
 MAX_BATCH_CHARS = 14000  # pages are grouped so each Gemini call stays a manageable size
+
+
+@lru_cache
+def _client() -> genai.Client:
+    key = get_settings().gemini_api_key
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is empty in backend/.env")
+    return genai.Client(api_key=key)
 
 Category = Literal[
     "tone", "terminology", "messaging", "visual_consistency",
@@ -81,19 +91,18 @@ def _batches(pages: list[tuple[int, str]]) -> list[str]:
 def extract_knowledge(pages: list[tuple[int, str]]) -> list[dict]:
     """pages = [(page_number, text), ...]. Returns rows ready for knowledge_items."""
     settings = get_settings()
-    if not settings.gemini_api_key:
-        raise RuntimeError("GEMINI_API_KEY is empty in backend/.env")
-
-    client = genai.Client(api_key=settings.gemini_api_key)
+    client = _client()
     page_text = {number: _norm(text) for number, text in pages}
 
-    rows: list[dict] = []
-    seen: set[str] = set()
+    batches = _batches(pages)
+    if not batches:
+        return []
 
-    for batch in _batches(pages):
+    def _process_batch(item: tuple[int, str]) -> tuple[int, list[ExtractedItem]]:
+        idx, batch_content = item
         response = client.models.generate_content(
             model=settings.gemini_model,
-            contents=batch,
+            contents=batch_content,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",
@@ -101,7 +110,21 @@ def extract_knowledge(pages: list[tuple[int, str]]) -> list[dict]:
             ),
         )
         items = ExtractionResult.model_validate_json(response.text).items
+        return idx, items
 
+    indexed_batches = list(enumerate(batches))
+    max_workers = min(len(batches), 6)
+    if max_workers > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            batch_results = list(executor.map(_process_batch, indexed_batches))
+        batch_results.sort(key=lambda r: r[0])
+    else:
+        batch_results = [_process_batch(indexed_batches[0])]
+
+    rows: list[dict] = []
+    seen: set[str] = set()
+
+    for _, items in batch_results:
         for item in items:
             content = item.content.strip()
             key = _norm(content)

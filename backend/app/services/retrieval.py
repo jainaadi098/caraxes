@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import re
 from uuid import UUID
 
@@ -9,9 +10,9 @@ GLOBAL_COLUMNS = (
     "source_page, source_excerpt, is_global, metadata"
 )
 
-CHUNK_CHARS = 80        # sentences are grouped until a chunk reaches about this size
-HARD_SPLIT = 400        # a single very long sentence is cut into pieces of this size
-MAX_CHUNKS = 30         # upper limit on searches per piece of content
+CHUNK_CHARS = 500       # sentences are grouped to ~500 chars for richer context and fewer searches
+HARD_SPLIT = 800        # a single very long sentence is cut into pieces of this size
+MAX_CHUNKS = 15         # upper limit on searches per piece of content
 TOP_K_PER_CHUNK = 4
 MAX_CONDITIONAL = 25    # most conditional items passed on to the analyser
 
@@ -58,6 +59,63 @@ def _match(
     )
 
 
+def _match_batch(
+    org_id: UUID,
+    vectors: list[str],
+    top_k: int,
+    categories: list[str] | None = None,
+    item_types: list[str] | None = None,
+    tags: list[str] | None = None,
+    min_similarity: float = 0.0,
+) -> list[dict]:
+    """
+    Attempts to call match_knowledge_items_batch via Postgres RPC for a single round trip.
+    If the batch RPC is not installed, falls back to running individual vector searches
+    concurrently via ThreadPoolExecutor.
+    """
+    if not vectors:
+        return []
+
+    # Attempt 1: Batch Postgres RPC
+    try:
+        res = (
+            get_supabase()
+            .rpc(
+                "match_knowledge_items_batch",
+                {
+                    "query_embeddings": vectors,
+                    "match_org_id": str(org_id),
+                    "match_count": top_k,
+                    "filter_categories": categories,
+                    "filter_item_types": item_types,
+                    "filter_tags": tags,
+                    "min_similarity": min_similarity,
+                },
+            )
+            .execute()
+        )
+        if res.data is not None:
+            return res.data
+    except Exception:
+        pass
+
+    # Attempt 2: Dispatch queries concurrently across threads
+    def _query_one(vec: str) -> list[dict]:
+        try:
+            return _match(org_id, vec, top_k, categories, item_types, tags, min_similarity) or []
+        except Exception:
+            return []
+
+    workers = min(len(vectors), 8)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        batch_results = list(executor.map(_query_one, vectors))
+
+    all_rows: list[dict] = []
+    for rows in batch_results:
+        all_rows.extend(rows)
+    return all_rows
+
+
 def retrieve_knowledge(
     org_id: UUID,
     query: str,
@@ -67,16 +125,21 @@ def retrieve_knowledge(
     top_k: int = 8,
     min_similarity: float = 0.0,
 ) -> dict:
-    """Day 3 search: global rules plus the best matches for one query."""
-    vector = to_pgvector(embed_query(query))
+    """Global rules plus the best matches for one query."""
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_global = executor.submit(_fetch_global, org_id)
+        future_vec = executor.submit(lambda: to_pgvector(embed_query(query)))
+        global_rules = future_global.result()
+        vector = future_vec.result()
+
     return {
-        "global_rules": _fetch_global(org_id),
+        "global_rules": global_rules,
         "matches": _match(org_id, vector, top_k, categories, item_types, tags, min_similarity),
     }
 
 
 def split_into_chunks(text: str) -> list[str]:
-    """Break content into small sentence groups so each search has a focused meaning."""
+    """Break content into sentence groups so each search has a focused meaning."""
     sentences: list[str] = []
     for line in re.split(r"\n+", text):
         for sentence in re.split(r"(?<=[.!?])\s+", line.strip()):
@@ -106,20 +169,29 @@ def retrieve_for_content(org_id: UUID, text: str, min_similarity: float = 0.0) -
     1. all global rules, always;
     2. the best conditional items for each part of the text, merged and ranked.
     """
-    global_rules = _fetch_global(org_id)
-
     chunks = split_into_chunks(text)
-    vectors = [to_pgvector(v) for v in embed_queries(chunks)]
+    if not chunks:
+        return {"global_rules": _fetch_global(org_id), "matches": []}
+
+    # Fetch global rules and embed query chunks concurrently
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_global = executor.submit(_fetch_global, org_id)
+        future_vectors = executor.submit(lambda: [to_pgvector(v) for v in embed_queries(chunks)])
+        global_rules = future_global.result()
+        vectors = future_vectors.result()
+
+    rows = _match_batch(org_id, vectors, TOP_K_PER_CHUNK, min_similarity=min_similarity)
 
     best: dict[str, dict] = {}
-    for vector in vectors:
-        for row in _match(org_id, vector, TOP_K_PER_CHUNK, min_similarity=min_similarity):
-            current = best.get(row["id"])
-            if current is None or row["similarity"] > current["similarity"]:
-                best[row["id"]] = row
+    for row in rows:
+        current = best.get(row["id"])
+        if current is None or row["similarity"] > current["similarity"]:
+            best[row["id"]] = row
 
     matches = sorted(best.values(), key=lambda r: r["similarity"], reverse=True)[:MAX_CONDITIONAL]
     return {"global_rules": global_rules, "matches": matches}
+
+
 VISUAL_QUERIES = [
     "logo usage, size, placement and clear space",
     "brand colour palette and colour usage",
@@ -131,15 +203,19 @@ VISUAL_QUERIES = [
 
 def retrieve_for_visual(org_id: UUID) -> dict:
     """Global rules plus the rules most relevant to how an image should look."""
-    global_rules = _fetch_global(org_id)
-    vectors = [to_pgvector(v) for v in embed_queries(VISUAL_QUERIES)]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_global = executor.submit(_fetch_global, org_id)
+        future_vectors = executor.submit(lambda: [to_pgvector(v) for v in embed_queries(VISUAL_QUERIES)])
+        global_rules = future_global.result()
+        vectors = future_vectors.result()
+
+    rows = _match_batch(org_id, vectors, 6, item_types=["rule"])
 
     best: dict[str, dict] = {}
-    for vector in vectors:
-        for row in _match(org_id, vector, 6, item_types=["rule"]):
-            current = best.get(row["id"])
-            if current is None or row["similarity"] > current["similarity"]:
-                best[row["id"]] = row
+    for row in rows:
+        current = best.get(row["id"])
+        if current is None or row["similarity"] > current["similarity"]:
+            best[row["id"]] = row
 
     matches = sorted(best.values(), key=lambda r: r["similarity"], reverse=True)[:20]
     return {"global_rules": global_rules, "matches": matches}

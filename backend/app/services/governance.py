@@ -1,4 +1,5 @@
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID
 
 from app.core.config import get_settings
@@ -45,41 +46,53 @@ def _load_text(submission: dict) -> tuple[str, list[tuple[int, int]] | None, boo
 
 
 def collect_text_findings(org_id: UUID, text: str) -> tuple[list[dict], dict, dict]:
-    """LLM text validator plus Python counting checks."""
+    """LLM text validator plus Python counting checks run concurrently."""
     retrieved = retrieve_for_content(org_id, text)
     if not retrieved["global_rules"] and not retrieved["matches"]:
         raise NoKnowledgeError(
             "No approved brand knowledge found. Approve items on the brand knowledge page first."
         )
 
-    llm_findings, dropped = analyze_text(text, retrieved)
-    collected = [{**f, "source": "text"} for f in llm_findings]
+    def _run_llm():
+        return analyze_text(text, retrieved)
 
-    checks: dict[str, str] = {}
-    det_config: dict = {"exclamation_max": None, "all_caps": False}
+    def _run_deterministic():
+        det_findings: list[dict] = []
+        checks: dict[str, str] = {}
+        det_config: dict = {"exclamation_max": None, "all_caps": False}
 
-    excl_rule = find_rule(org_id, "limit on exclamation marks in content", ["exclamation"])
-    if excl_rule is None:
-        checks["exclamation_marks"] = "skipped: no approved exclamation rule"
-    else:
-        limit = parse_max_count(excl_rule["content"])
-        det_config["exclamation_max"] = limit
-        for f in check_exclamations(text, limit):
-            collected.append(
-                {**f, "knowledge_item_id": excl_rule["id"], "finding_type": "rule_violation", "source": "deterministic"}
-            )
-        checks["exclamation_marks"] = f"ran (maximum {limit})"
+        excl_rule = find_rule(org_id, "limit on exclamation marks in content", ["exclamation"])
+        if excl_rule is None:
+            checks["exclamation_marks"] = "skipped: no approved exclamation rule"
+        else:
+            limit = parse_max_count(excl_rule["content"])
+            det_config["exclamation_max"] = limit
+            for f in check_exclamations(text, limit):
+                det_findings.append(
+                    {**f, "knowledge_item_id": excl_rule["id"], "finding_type": "rule_violation", "source": "deterministic"}
+                )
+            checks["exclamation_marks"] = f"ran (maximum {limit})"
 
-    caps_rule = find_rule(org_id, "never write whole sentences in capital letters", CAPS_KEYWORDS)
-    if caps_rule is None:
-        checks["all_caps"] = "skipped: no approved capital-letters rule"
-    else:
-        det_config["all_caps"] = True
-        for f in check_all_caps(text):
-            collected.append(
-                {**f, "knowledge_item_id": caps_rule["id"], "finding_type": "rule_violation", "source": "deterministic"}
-            )
-        checks["all_caps"] = "ran"
+        caps_rule = find_rule(org_id, "never write whole sentences in capital letters", CAPS_KEYWORDS)
+        if caps_rule is None:
+            checks["all_caps"] = "skipped: no approved capital-letters rule"
+        else:
+            det_config["all_caps"] = True
+            for f in check_all_caps(text):
+                det_findings.append(
+                    {**f, "knowledge_item_id": caps_rule["id"], "finding_type": "rule_violation", "source": "deterministic"}
+                )
+            checks["all_caps"] = "ran"
+
+        return det_findings, checks, det_config
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_llm = executor.submit(_run_llm)
+        future_det = executor.submit(_run_deterministic)
+        llm_findings, dropped = future_llm.result()
+        det_findings, checks, det_config = future_det.result()
+
+    collected = [{**f, "source": "text"} for f in llm_findings] + det_findings
 
     context = {
         "global_rules_used": len(retrieved["global_rules"]),

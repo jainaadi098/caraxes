@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID
 
 from app.core.config import get_settings
@@ -48,7 +49,7 @@ def _load_logos(org_id: UUID, bucket: str) -> list[dict]:
 
 
 def collect_image_findings(org_id: UUID, submission: dict) -> tuple[list[dict], dict, dict]:
-    """Returns (raw findings, context for the summary, retrieved knowledge)."""
+    """Returns (raw findings, context for the summary, retrieved knowledge). Concurrently executes independent stages."""
     sb = get_supabase()
     settings = get_settings()
 
@@ -60,54 +61,74 @@ def collect_image_findings(org_id: UUID, submission: dict) -> tuple[list[dict], 
     height, width = img.shape[:2]
     image_png = encode_png(img)
 
-    # 1. OCR: reads the text and where it is
-    lines = ocr_lines(img)
+    # 1. Concurrently run OCR, visual rule retrieval, and reference logo loading
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_ocr = executor.submit(ocr_lines, img)
+        future_retrieved = executor.submit(retrieve_for_visual, org_id)
+        future_logos = executor.submit(_load_logos, org_id, settings.supabase_bucket)
+
+        lines = future_ocr.result()
+        retrieved = future_retrieved.result()
+        logos = future_logos.result()
+
     ocr_text = "\n".join(line["text"] for line in lines)
 
-    # 2. Retrieve rules (globals first)
-    retrieved = retrieve_for_visual(org_id)
     if not retrieved["global_rules"] and not retrieved["matches"]:
         raise NoKnowledgeError(
             "No approved brand knowledge found. Approve items on the brand knowledge page first."
         )
-    logos = _load_logos(org_id, settings.supabase_bucket)
 
-    collected: list[dict] = []
+    # 2. Concurrently run Gemini Vision, OCR text analysis (retrieval + Gemini Text), and contrast rule lookup
+    def _run_visual_analysis():
+        return analyze_visual(image_png, [logo["png"] for logo in logos], retrieved)
 
-    # 3. Gemini vision: what takes eyes to judge
-    visual_findings, logo_box, dropped_visual = analyze_visual(
-        image_png, [logo["png"] for logo in logos], retrieved
-    )
-    collected += [{**f, "source": "visual"} for f in visual_findings]
-
-    # 4. Gemini text engine on the OCR text, each finding placed on its line
-    dropped_text = 0
-    if ocr_text.strip():
+    def _run_text_analysis():
+        if not ocr_text.strip():
+            return [], 0
         retrieved_text = retrieve_for_content(org_id, ocr_text)
         text_findings, dropped_text = analyze_text(ocr_text, retrieved_text)
         for f in text_findings:
             f["location"] = _locate(f["segment"], lines)
-            collected.append({**f, "source": "text"})
+            f["source"] = "text"
+        return text_findings, dropped_text
 
-    # 5. Python and OpenCV: measurable checks, each tied to an approved rule
-    checks: dict[str, str] = {}
+    def _run_contrast_check():
+        contrast_findings: list[dict] = []
+        checks_map: dict[str, str] = {}
+        contrast_rule = find_rule(org_id, "text colour contrast ratio against background", ["contrast"])
+        if contrast_rule is None:
+            checks_map["contrast"] = "skipped: no approved contrast rule"
+        else:
+            threshold = parse_contrast_threshold(contrast_rule["content"])
+            for f in check_contrast(img, lines, threshold):
+                contrast_findings.append(
+                    {
+                        **f,
+                        "knowledge_item_id": contrast_rule["id"],
+                        "finding_type": "rule_violation",
+                        "source": "deterministic",
+                    }
+                )
+            checks_map["contrast"] = f"ran (minimum {threshold:g}:1)"
+        return contrast_findings, checks_map
 
-    contrast_rule = find_rule(org_id, "text colour contrast ratio against background", ["contrast"])
-    if contrast_rule is None:
-        checks["contrast"] = "skipped: no approved contrast rule"
-    else:
-        threshold = parse_contrast_threshold(contrast_rule["content"])
-        for f in check_contrast(img, lines, threshold):
-            collected.append(
-                {
-                    **f,
-                    "knowledge_item_id": contrast_rule["id"],
-                    "finding_type": "rule_violation",
-                    "source": "deterministic",
-                }
-            )
-        checks["contrast"] = f"ran (minimum {threshold:g}:1)"
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_visual = executor.submit(_run_visual_analysis)
+        future_text = executor.submit(_run_text_analysis)
+        future_contrast = executor.submit(_run_contrast_check)
 
+        visual_findings, logo_box, dropped_visual = future_visual.result()
+        text_findings, dropped_text = future_text.result()
+        contrast_findings, contrast_checks = future_contrast.result()
+
+    collected: list[dict] = []
+    collected += [{**f, "source": "visual"} for f in visual_findings]
+    collected += text_findings
+    collected += contrast_findings
+
+    checks: dict[str, str] = dict(contrast_checks)
+
+    # 3. Logo proportions check (requires logo_box from visual analysis)
     logo_rule = find_rule(
         org_id,
         "logo must never be stretched, distorted, rotated or recoloured",
