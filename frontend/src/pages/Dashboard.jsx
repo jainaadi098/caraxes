@@ -20,10 +20,12 @@ function Stat({ title, value, note, noteClass, icon, iconClass }) {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     api("/dashboard/stats").then(setStats).catch((e) => setError(e.message));
+    api("/analytics").then(setAnalytics).catch(() => {});
   }, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
@@ -54,6 +56,79 @@ export default function Dashboard() {
         <Stat title="Open Pre-Pub Findings" value={stats.open_findings} note="In items under review or needing changes" noteClass="text-blue-700" icon="alert" iconClass="text-blue-500" />
         <Stat title="Approved Knowledge Items" value={stats.knowledge.approved ?? 0} note={`${stats.knowledge.pending ?? 0} awaiting admin approval`} noteClass="text-emerald-700" icon="book" iconClass="text-emerald-500" />
       </div>
+
+      {/* Brand Compliance Analytics */}
+      {analytics && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📊</span>
+                <h3 className="font-bold text-slate-900">Brand Compliance & Governance Analytics</h3>
+              </div>
+              <p className="text-xs text-slate-500">Live multi-tenant compliance scoring, rule violation trends, and auto-fix adoption.</p>
+            </div>
+            <Link to="/knowledge" className="text-xs font-semibold text-indigo-600 hover:underline">
+              Manage in Rule Studio →
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-6 md:grid-cols-3">
+            {/* Health Score */}
+            <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white p-4">
+              <div className="text-xs font-semibold text-indigo-900">Overall Compliance Score</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-4xl font-black text-indigo-700">{analytics.compliance_score}%</span>
+                <span className={`text-xs font-semibold ${analytics.compliance_score >= 80 ? "text-emerald-600" : "text-amber-600"}`}>
+                  {analytics.compliance_score >= 80 ? "Strong Adherence" : "Requires Attention"}
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-indigo-100/60 pt-2">
+                <span>Auto-fix adoption</span>
+                <span className="font-bold text-slate-800">{analytics.fix_rate}%</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-slate-600">
+                <span>Active rules enforced</span>
+                <span className="font-bold text-slate-800">{analytics.active_rules_count} / {analytics.total_rules_count}</span>
+              </div>
+            </div>
+
+            {/* Violations by Category */}
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="text-xs font-semibold text-slate-800">Violations by Brand Category</div>
+              <div className="mt-3 space-y-2">
+                {Object.entries(analytics.category_breakdown || {}).length === 0 && (
+                  <p className="text-xs text-slate-400">No violations recorded yet.</p>
+                )}
+                {Object.entries(analytics.category_breakdown || {})
+                  .slice(0, 4)
+                  .map(([cat, count]) => (
+                    <div key={cat} className="flex items-center justify-between text-xs">
+                      <span className="capitalize text-slate-600">{cat.replace(/_/g, " ")}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">{count}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Top Failing Rules */}
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="text-xs font-semibold text-slate-800">Top Infringed Brand Rules</div>
+              <div className="mt-3 space-y-2">
+                {analytics.top_violated_rules?.length === 0 && (
+                  <p className="text-xs text-slate-400">All submissions fully comply with rules.</p>
+                )}
+                {analytics.top_violated_rules?.map((r) => (
+                  <div key={r.rule_id} className="flex items-start justify-between gap-2 text-xs">
+                    <span className="truncate text-slate-700" title={r.title}>• {r.title}</span>
+                    <span className="rounded bg-amber-100 px-1.5 py-0.5 font-bold text-amber-800">{r.violation_count}×</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="mb-3">

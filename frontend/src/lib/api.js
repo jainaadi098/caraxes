@@ -15,6 +15,8 @@ export async function api(path, options = {}) {
   if (options.body && !(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
+  const token = localStorage.getItem("caraxes_auth_token") || localStorage.getItem("sb_token");
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const orgId = getOrgId();
   if (orgId) headers["X-Org-Id"] = orgId;
   const role = getRole();

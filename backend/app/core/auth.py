@@ -7,21 +7,82 @@ from app.core.supabase_client import get_supabase
 ROLES = ("admin", "creator", "reviewer")
 
 
-def get_org_id(x_org_id: str | None = Header(default=None)) -> UUID:
+class AuthContext:
+    def __init__(
+        self,
+        org_id: UUID,
+        role: str,
+        user_name: str,
+        user_id: str | None = None,
+    ):
+        self.org_id = org_id
+        self.role = role
+        self.user_name = user_name
+        self.user_id = user_id
+
+
+def get_auth_context(
+    authorization: str | None = Header(default=None),
+    x_org_id: str | None = Header(default=None),
+    x_role: str | None = Header(default=None),
+    x_user_name: str | None = Header(default=None),
+) -> AuthContext:
     """
-    TEMPORARY identity: reads the X-Org-Id header. Real login would replace the
-    inside of this function (and get_role / get_user_name) and nothing else.
+    Authenticates requests via Supabase Auth JWT Bearer token or demo headers.
+    1. Checks Authorization: Bearer <jwt>, verifies user and retrieves org profile.
+    2. Falls back to X-Org-Id, X-Role, X-User-Name for backward compatibility and testing.
     """
+    sb = get_supabase()
+
+    # 1. Supabase Auth JWT
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+        if token:
+            try:
+                user_res = sb.auth.get_user(token)
+                user = getattr(user_res, "user", None)
+                if user and getattr(user, "id", None):
+                    p_res = (
+                        sb.table("profiles")
+                        .select("org_id, role, full_name")
+                        .eq("id", str(user.id))
+                        .limit(1)
+                        .execute()
+                    )
+                    if p_res.data:
+                        prof = p_res.data[0]
+                        role = (prof.get("role") or "admin").lower()
+                        return AuthContext(
+                            org_id=UUID(prof["org_id"]),
+                            role=role if role in ROLES else "admin",
+                            user_name=(prof.get("full_name") or getattr(user, "email", "Caraxes User"))[:60],
+                            user_id=str(user.id),
+                        )
+                    meta = getattr(user, "user_metadata", {}) or {}
+                    if meta.get("org_id"):
+                        role = (meta.get("role") or "admin").lower()
+                        return AuthContext(
+                            org_id=UUID(meta["org_id"]),
+                            role=role if role in ROLES else "admin",
+                            user_name=(meta.get("full_name") or getattr(user, "email", "Caraxes User"))[:60],
+                            user_id=str(user.id),
+                        )
+            except Exception:
+                pass
+
+    # 2. Fallback to demo headers
     if not x_org_id:
-        raise HTTPException(status_code=401, detail="Missing X-Org-Id header")
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required: Provide Bearer token or X-Org-Id header",
+        )
     try:
         org_id = UUID(x_org_id)
     except ValueError:
         raise HTTPException(status_code=401, detail="X-Org-Id is not a valid UUID")
 
     res = (
-        get_supabase()
-        .table("organisations")
+        sb.table("organisations")
         .select("id")
         .eq("id", str(org_id))
         .limit(1)
@@ -29,16 +90,25 @@ def get_org_id(x_org_id: str | None = Header(default=None)) -> UUID:
     )
     if not res.data:
         raise HTTPException(status_code=401, detail="Unknown organisation")
-    return org_id
 
-
-def get_role(x_role: str | None = Header(default=None)) -> str:
     role = (x_role or "admin").lower()
-    return role if role in ROLES else "admin"
+    return AuthContext(
+        org_id=org_id,
+        role=role if role in ROLES else "admin",
+        user_name=(x_user_name or "Caraxes User")[:60],
+    )
 
 
-def get_user_name(x_user_name: str | None = Header(default=None)) -> str:
-    return (x_user_name or "Caraxes User")[:60]
+def get_org_id(ctx: AuthContext = Depends(get_auth_context)) -> UUID:
+    return ctx.org_id
+
+
+def get_role(ctx: AuthContext = Depends(get_auth_context)) -> str:
+    return ctx.role
+
+
+def get_user_name(ctx: AuthContext = Depends(get_auth_context)) -> str:
+    return ctx.user_name
 
 
 def require_role(*allowed: str):
@@ -47,4 +117,4 @@ def require_role(*allowed: str):
     def checker(role: str = Depends(get_role)) -> str:
         return role
 
-    return checker
+    return checker

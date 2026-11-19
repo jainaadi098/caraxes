@@ -45,6 +45,17 @@ export default function KnowledgeReview({ docId, refreshKey }) {
     }
   }
 
+  async function remove(id) {
+    if (!window.confirm("Delete this rule permanently?")) return;
+    setError("");
+    try {
+      await api(`/knowledge-items/${id}`, { method: "DELETE" });
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function bulkApprove() {
     if (!items.length) return;
     if (!window.confirm(`Approve all ${items.length} items shown?`)) return;
@@ -211,6 +222,12 @@ export default function KnowledgeReview({ docId, refreshKey }) {
                   )}
                   <button onClick={() => startEdit(item)} className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50">
                     Edit
+                  </button>
+                  <button
+                    onClick={() => remove(item.id)}
+                    className="rounded border border-red-200 px-3 py-1 text-red-600 hover:bg-red-50"
+                  >
+                    Delete
                   </button>
                 </div>
               </>
