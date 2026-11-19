@@ -1,3 +1,4 @@
+from functools import lru_cache
 import re
 
 from google import genai
@@ -5,8 +6,17 @@ from google.genai import types
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.services.vale_engine import apply_deterministic_substitutions, generate_unified_diff
 from app.validators.deterministic_text import check_all_caps
 from app.validators.text_validator import _norm
+
+
+@lru_cache
+def _client() -> genai.Client:
+    key = get_settings().gemini_api_key
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is empty in backend/.env")
+    return genai.Client(api_key=key)
 
 
 class ChangeNote(BaseModel):
@@ -103,7 +113,7 @@ def build_correction(text: str, findings: list[dict], retrieved: dict, det_confi
         "VERIFIED FACTS AND APPROVED TAGLINES\n" + ("\n".join(reference) or "(none)")
     )
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    client = _client()
     response = client.models.generate_content(
         model=settings.gemini_model,
         contents=prompt,
@@ -120,8 +130,55 @@ def build_correction(text: str, findings: list[dict], retrieved: dict, det_confi
     if not result.corrected_text.strip():
         raise RuntimeError("Gemini returned an empty correction")
 
+    corrected = result.corrected_text
     return {
-        "corrected_text": result.corrected_text,
+        "corrected_text": corrected,
         "changes": [c.model_dump() for c in result.changes],
-        "verification": _verify(text, result.corrected_text, relevant, det_config),
+        "unified_diff": generate_unified_diff(text, corrected),
+        "verification": _verify(text, corrected, relevant, det_config),
+    }
+
+
+def generate_hybrid_autofix(text: str, findings: list[dict], retrieved: dict, det_config: dict) -> dict:
+    """
+    Hybrid Auto-Fix Engine:
+    1. Fast-Path: If all findings have deterministic Vale substitutions, applies them in 0ms without an LLM.
+    2. Hybrid Path: Pairs deterministic Vale rule diagnostics with Gemini LLM context-aware remediation.
+    """
+    relevant = [f for f in findings if f["source"] in ("text", "deterministic")]
+    if not relevant:
+        return {
+            "corrected_text": text,
+            "changes": [],
+            "unified_diff": "",
+            "method": "no_changes_needed",
+        }
+
+    # Check if every relevant finding has a deterministic substitution available
+    all_deterministic = all(
+        f.get("suggested_correction") and isinstance(f.get("location", {}).get("start"), int)
+        for f in relevant
+    )
+
+    if all_deterministic:
+        corrected, changes = apply_deterministic_substitutions(text, relevant)
+        return {
+            "corrected_text": corrected,
+            "changes": changes,
+            "unified_diff": generate_unified_diff(text, corrected),
+            "verification": _verify(text, corrected, relevant, det_config),
+            "method": "deterministic_vale",
+        }
+
+    # Otherwise run the full hybrid Gemini remediation
+    correction = build_correction(text, relevant, retrieved, det_config)
+    if correction:
+        correction["method"] = "hybrid_vale_llm"
+        return correction
+
+    return {
+        "corrected_text": text,
+        "changes": [],
+        "unified_diff": "",
+        "method": "failed",
     }

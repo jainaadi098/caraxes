@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.api import (
     brand_assets, brand_documents, dashboard, findings, github_webhook, health,
-    knowledge_items, organisations, public, retrieval, sharing, submissions,
+    knowledge_items, organisations, public, retrieval, sharing, submissions, vale,
 )
 from app.core.auth import require_role
 from app.core.config import get_settings
@@ -53,3 +53,4 @@ app.include_router(sharing.router)
 app.include_router(findings.router)
 app.include_router(dashboard.router)
 app.include_router(github_webhook.router)
+app.include_router(vale.router)

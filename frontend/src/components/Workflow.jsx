@@ -11,6 +11,7 @@ const DECISION = {
 export function CorrectionPanel({ summary, originalText, onApply, busy }) {
   const correction = summary.correction;
   const [text, setText] = useState(correction?.corrected_text ?? "");
+  const [viewMode, setViewMode] = useState("side-by-side");
 
   useEffect(() => {
     setText(correction?.corrected_text ?? "");
@@ -21,33 +22,85 @@ export function CorrectionPanel({ summary, originalText, onApply, busy }) {
   }
   if (!correction) return null;
 
-  const v = correction.verification;
+  const v = correction.verification || { unresolved_segments: [], introduced_numbers: [], dropped_numbers: [], rule_rechecks_failed: [] };
   const placeholders = text.match(/\[[^\]]+\]/g) ?? [];
   const problems = [
-    ...v.unresolved_segments.map((s) => `Problem text may still be present: “${s}”`),
-    ...v.introduced_numbers.map((n) => `A number that was not in the original appears: ${n}`),
-    ...v.dropped_numbers.map((n) => `A number from the original is missing: ${n}`),
-    ...v.rule_rechecks_failed.map((r) => `A counting rule still fails: ${label(r)}`),
+    ...(v.unresolved_segments || []).map((s) => `Problem text may still be present: “${s}”`),
+    ...(v.introduced_numbers || []).map((n) => `A number that was not in the original appears: ${n}`),
+    ...(v.dropped_numbers || []).map((n) => `A number from the original is missing: ${n}`),
+    ...(v.rule_rechecks_failed || []).map((r) => `A counting rule still fails: ${label(r)}`),
   ];
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 font-medium text-gray-900">Suggested corrected version</h3>
-      <div className="grid gap-3 md:grid-cols-2">
-        <div>
-          <div className="mb-1 text-xs font-medium text-gray-500">Original</div>
-          <pre className="whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{originalText}</pre>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium text-gray-900">Suggested corrected version</h3>
+          <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+            {correction.method === "deterministic_vale" ? "⚡ Vale Fast-Path (0ms)" : "✨ Hybrid Vale + Gemini Auto-Fix"}
+          </span>
         </div>
-        <div>
-          <div className="mb-1 text-xs font-medium text-gray-500">Corrected (you can edit)</div>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={Math.min(14, Math.max(6, Math.ceil(text.length / 60)))}
-            className="w-full rounded border border-gray-300 p-3 text-sm"
-          />
-        </div>
+        {correction.unified_diff && (
+          <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("side-by-side")}
+              className={`rounded px-2.5 py-1 ${viewMode === "side-by-side" ? "bg-white font-medium text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+            >
+              Side-by-side
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("diff")}
+              className={`rounded px-2.5 py-1 ${viewMode === "diff" ? "bg-white font-medium text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+            >
+              Unified Diff
+            </button>
+          </div>
+        )}
       </div>
+
+      {viewMode === "diff" && correction.unified_diff ? (
+        <div className="overflow-x-auto rounded border border-gray-200 bg-slate-900 p-3 font-mono text-xs text-slate-100">
+          {correction.unified_diff.split("\n").map((line, idx) => {
+            const isAdd = line.startsWith("+") && !line.startsWith("+++");
+            const isDel = line.startsWith("-") && !line.startsWith("---");
+            const isHunk = line.startsWith("@@");
+            return (
+              <div
+                key={idx}
+                className={
+                  isAdd
+                    ? "bg-emerald-950/60 text-emerald-300"
+                    : isDel
+                    ? "bg-rose-950/60 text-rose-300"
+                    : isHunk
+                    ? "text-sky-400"
+                    : "text-slate-300"
+                }
+              >
+                {line || " "}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <div className="mb-1 text-xs font-medium text-gray-500">Original</div>
+            <pre className="whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">{originalText}</pre>
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-medium text-gray-500">Corrected (you can edit)</div>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={Math.min(14, Math.max(6, Math.ceil(text.length / 60)))}
+              className="w-full rounded border border-gray-300 p-3 text-sm"
+            />
+          </div>
+        </div>
+      )}
 
       {v.ok ? (
         <p className="mt-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800">

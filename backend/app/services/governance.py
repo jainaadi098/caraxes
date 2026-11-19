@@ -5,7 +5,7 @@ from uuid import UUID
 from app.core.config import get_settings
 from app.core.supabase_client import get_supabase
 from app.services.analysis import NoKnowledgeError, _set_submission_status, load_analysis
-from app.services.correction_engine import build_correction
+from app.services.correction_engine import build_correction, generate_hybrid_autofix
 from app.services.image_analysis import collect_image_findings
 from app.services.pdf_extractor import extract_pdf_pages
 from app.services.retrieval import find_rule, retrieve_for_content
@@ -151,7 +151,7 @@ def run_governance(org_id: UUID, submission: dict) -> dict:
         correction, correction_error = None, None
         if text and findings:
             try:
-                correction = build_correction(text, findings, retrieved, context.get("det_config", {}))
+                correction = generate_hybrid_autofix(text, findings, retrieved, context.get("det_config", {}))
             except Exception as e:
                 correction_error = str(e)[:300]
 
