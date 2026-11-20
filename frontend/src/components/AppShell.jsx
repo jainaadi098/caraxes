@@ -5,7 +5,7 @@ import { api, publicUrl } from "../lib/api";
 import { Icon } from "../lib/ui";
 
 const MAIN = [
-  { to: "/", end: true, label: "Submit & Check", icon: "plus" },
+  { to: "/submit", label: "Submit & Check", icon: "plus" },
   { to: "/dashboard", label: "Governance Dashboard", icon: "dashboard" },
   { to: "/queue", label: "Review Queue", icon: "queue", badge: true },
   { to: "/submissions", label: "All Submissions", icon: "doc" },
@@ -13,7 +13,7 @@ const MAIN = [
 const LOOP = [
   { to: "/knowledge", label: "Brand Knowledge", icon: "book" },
   { to: "/gallery", label: "Public Gallery", icon: "globe" },
-  { to: "/welcome", label: "Product Tour & Guide", icon: "info" },
+  { to: "/", end: true, label: "Product Tour & Guide", icon: "info" },
 ];
 
 const navClass = ({ isActive }) =>
@@ -24,7 +24,7 @@ const navClass = ({ isActive }) =>
   }`;
 
 function titleFor(pathname) {
-  if (pathname === "/" || pathname.startsWith("/submit")) return "Submit & Pre-Publication Check";
+  if (pathname.startsWith("/submit")) return "Submit & Pre-Publication Check";
   if (pathname.startsWith("/dashboard")) return "Governance Dashboard";
   if (pathname.startsWith("/queue")) return "Review Queue";
   if (pathname.startsWith("/submissions/")) return "Content Inspector";

@@ -33,15 +33,13 @@ function Workspace() {
       {/* key={orgId}: switching workspace discards all on-screen state */}
       <div key={orgId}>
         <Routes>
-          {/* Submission page is now right on the starting root route */}
-          <Route path="/" element={<Submit />} />
           <Route path="/submit" element={<Submit />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/queue" element={<Submissions mode="queue" />} />
           <Route path="/submissions" element={<Submissions mode="all" />} />
           <Route path="/submissions/:id" element={<SubmissionDetail />} />
           <Route path="/knowledge" element={<Knowledge />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/submit" />} />
         </Routes>
       </div>
     </AppShell>
@@ -51,15 +49,24 @@ function Workspace() {
 export default function App() {
   return (
     <Routes>
+      {/* Product Tour and Guide is the starting page at root / */}
+      <Route path="/" element={<Landing />} />
       <Route path="/welcome" element={<Landing />} />
+      <Route path="/tour" element={<Landing />} />
+
+      {/* Standalone authentication pages outside dashboard */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      {/* Public gallery */}
       <Route element={<PublicLayout />}>
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/gallery/:id" element={<PublicSession />} />
         <Route path="/s/:token" element={<PublicSession />} />
       </Route>
+
+      {/* Workspace routes with AppShell */}
       <Route path="/*" element={<Workspace />} />
     </Routes>
   );
