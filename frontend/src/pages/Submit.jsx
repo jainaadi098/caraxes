@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { SAMPLES } from "../lib/sample";
 import { Icon } from "../lib/ui";
@@ -50,6 +50,31 @@ export default function Submit() {
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-6">
+      {/* Starting Page Welcome & Info Banner */}
+      <section className="rounded-2xl border border-orange-200/80 bg-gradient-to-r from-orange-50/70 via-white to-amber-50/30 p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-white px-2.5 py-0.5 text-[11px] font-bold text-[#FF5533] shadow-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF5533] animate-pulse" />
+              Automated Brand Governance
+            </div>
+            <h1 className="mt-1.5 text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+              Pre-Publication Brand Compliance Check
+            </h1>
+            <p className="mt-1 text-xs text-slate-600 max-w-xl">
+              Paste marketing copy, ad banners, or press drafts below. Caraxes audits your content with deterministic Vale rules and Gemini RAG citation checks.
+            </p>
+          </div>
+          <Link
+            to="/welcome"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-orange-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:border-[#FF5533] hover:text-[#FF5533] transition"
+          >
+            <Icon name="info" className="h-3.5 w-3.5 text-[#FF5533]" />
+            How It Works & Tour
+          </Link>
+        </div>
+      </section>
+
       {mode === "text" && (
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3">

@@ -79,7 +79,17 @@ export default function Login() {
         <div className="absolute -bottom-32 right-1/4 h-[400px] w-[500px] rounded-full bg-orange-100/30 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-6">
+        {/* Navigation back to main app */}
+        <div className="flex items-center justify-between text-xs">
+          <Link to="/" className="inline-flex items-center gap-1.5 font-semibold text-slate-500 hover:text-[#FF5533] transition">
+            ← Back to Submit & Check
+          </Link>
+          <Link to="/welcome" className="text-slate-400 hover:text-slate-700 transition">
+            Product Tour
+          </Link>
+        </div>
+
         {/* Top Branding */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2.5">

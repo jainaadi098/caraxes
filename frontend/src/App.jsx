@@ -15,7 +15,7 @@ import Submissions from "./pages/Submissions";
 import Submit from "./pages/Submit";
 
 function Workspace() {
-  const { orgId, isAuthenticated, loadingAuth } = useApp();
+  const { orgId, loadingAuth } = useApp();
 
   if (loadingAuth) {
     return (
@@ -28,23 +28,15 @@ function Workspace() {
     );
   }
 
-  const hasToken = Boolean(
-    localStorage.getItem("caraxes_auth_token") ||
-    localStorage.getItem("caraxes_org_id") ||
-    isAuthenticated
-  );
-
-  if (!hasToken) {
-    return <Landing />;
-  }
-
   return (
     <AppShell>
       {/* key={orgId}: switching workspace discards all on-screen state */}
       <div key={orgId}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          {/* Submission page is now right on the starting root route */}
+          <Route path="/" element={<Submit />} />
           <Route path="/submit" element={<Submit />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/queue" element={<Submissions mode="queue" />} />
           <Route path="/submissions" element={<Submissions mode="all" />} />
           <Route path="/submissions/:id" element={<SubmissionDetail />} />

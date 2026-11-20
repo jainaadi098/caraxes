@@ -5,15 +5,15 @@ import { api, publicUrl } from "../lib/api";
 import { Icon } from "../lib/ui";
 
 const MAIN = [
-  { to: "/", end: true, label: "Dashboard", icon: "dashboard" },
-  { to: "/submit", label: "Submit & Check", icon: "plus" },
+  { to: "/", end: true, label: "Submit & Check", icon: "plus" },
+  { to: "/dashboard", label: "Governance Dashboard", icon: "dashboard" },
   { to: "/queue", label: "Review Queue", icon: "queue", badge: true },
   { to: "/submissions", label: "All Submissions", icon: "doc" },
 ];
 const LOOP = [
   { to: "/knowledge", label: "Brand Knowledge", icon: "book" },
   { to: "/gallery", label: "Public Gallery", icon: "globe" },
-  { to: "/welcome", label: "Product Tour", icon: "info" },
+  { to: "/welcome", label: "Product Tour & Guide", icon: "info" },
 ];
 
 const navClass = ({ isActive }) =>
@@ -24,8 +24,8 @@ const navClass = ({ isActive }) =>
   }`;
 
 function titleFor(pathname) {
-  if (pathname === "/") return "Governance Dashboard";
-  if (pathname.startsWith("/submit")) return "Submit & Pre-Publication Check";
+  if (pathname === "/" || pathname.startsWith("/submit")) return "Submit & Pre-Publication Check";
+  if (pathname.startsWith("/dashboard")) return "Governance Dashboard";
   if (pathname.startsWith("/queue")) return "Review Queue";
   if (pathname.startsWith("/submissions/")) return "Content Inspector";
   if (pathname.startsWith("/submissions")) return "All Submissions";
@@ -34,7 +34,7 @@ function titleFor(pathname) {
 }
 
 export default function AppShell({ children }) {
-  const { orgs, orgId, error, chooseOrg, createOrg, currentUser, logout } = useApp();
+  const { orgs, orgId, error, chooseOrg, createOrg, currentUser, logout, isAuthenticated } = useApp();
   const { pathname } = useLocation();
   const [stats, setStats] = useState(null);
   const [engine, setEngine] = useState("checking");
@@ -146,7 +146,7 @@ export default function AppShell({ children }) {
           ))}
         </nav>
 
-        {currentUser && (
+        {isAuthenticated && currentUser ? (
           <div className="mt-auto mb-2 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="truncate text-xs font-bold text-slate-800">
@@ -158,6 +158,25 @@ export default function AppShell({ children }) {
             </div>
             <div className="mt-0.5 truncate text-[11px] text-slate-500">
               {currentUser.email || "Active Member"}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-auto mb-2 rounded-xl border border-orange-200/70 bg-gradient-to-br from-orange-50/70 via-white to-orange-50/30 p-3 shadow-xs">
+            <div className="text-xs font-bold text-slate-900">Company Access</div>
+            <p className="mt-0.5 text-[11px] text-slate-500">Log in to manage custom brand rules & access workspace settings.</p>
+            <div className="mt-2.5 flex items-center gap-1.5">
+              <NavLink
+                to="/login"
+                className="flex-1 rounded-lg bg-[#FF5533] px-2.5 py-1.5 text-center text-[11px] font-bold text-white shadow-xs hover:bg-[#E64424] transition"
+              >
+                Log in
+              </NavLink>
+              <NavLink
+                to="/register"
+                className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-center text-[11px] font-semibold text-slate-700 hover:border-[#FF5533] hover:text-[#FF5533] transition"
+              >
+                Sign up
+              </NavLink>
             </div>
           </div>
         )}
@@ -188,27 +207,44 @@ export default function AppShell({ children }) {
                 AI-assisted governance • Citation-grounded • Human sign-off required
               </span>
 
-              {/* User Profile & Sign Out Button */}
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-[#FF5533] to-[#FF7A59] text-xs font-bold text-white uppercase shadow-sm">
-                  {(currentUser?.full_name || currentUser?.email || "U")[0]}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <div className="text-xs font-bold text-slate-900 leading-tight">
-                    {currentUser?.full_name || "Company User"}
+              {/* User Profile or Standalone Login/Register Action */}
+              {isAuthenticated && currentUser ? (
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-[#FF5533] to-[#FF7A59] text-xs font-bold text-white uppercase shadow-sm">
+                    {(currentUser?.full_name || currentUser?.email || "U")[0]}
                   </div>
-                  <div className="text-[10px] font-semibold text-slate-500 capitalize">
-                    {currentUser?.role || "admin"}
+                  <div className="hidden sm:block text-left">
+                    <div className="text-xs font-bold text-slate-900 leading-tight">
+                      {currentUser?.full_name || "Company User"}
+                    </div>
+                    <div className="text-[10px] font-semibold text-slate-500 capitalize">
+                      {currentUser?.role || "admin"}
+                    </div>
                   </div>
+                  <button
+                    onClick={logout}
+                    title="Sign out of workspace"
+                    className="ml-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF5533] transition"
+                  >
+                    Sign out
+                  </button>
                 </div>
-                <button
-                  onClick={logout}
-                  title="Sign out of workspace"
-                  className="ml-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF5533] transition"
-                >
-                  Sign out
-                </button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <NavLink
+                    to="/login"
+                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:border-[#FF5533] hover:text-[#FF5533] transition"
+                  >
+                    Log in
+                  </NavLink>
+                  <NavLink
+                    to="/register"
+                    className="rounded-xl bg-[#FF5533] px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-orange-500/20 hover:bg-[#E64424] transition"
+                  >
+                    Create Account
+                  </NavLink>
+                </div>
+              )}
             </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-4 pb-2 md:hidden">
