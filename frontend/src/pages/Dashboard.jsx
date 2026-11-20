@@ -38,13 +38,13 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-widest text-blue-700">Brand Governance OS</div>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900">Welcome back</h2>
+          <div className="text-[11px] font-bold uppercase tracking-widest text-[#FF5533]">Brand Governance OS</div>
+          <h2 className="mt-1 text-2xl font-extrabold text-slate-900">Welcome back</h2>
           <p className="mt-1 text-sm text-slate-600">{SUBTITLE}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/queue" className="text-sm font-semibold text-slate-900 hover:underline">Review Queue ({pending})</Link>
-          <Link to="/submit" className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+          <Link to="/queue" className="text-sm font-semibold text-slate-700 hover:text-[#FF5533] hover:underline">Review Queue ({pending})</Link>
+          <Link to="/submit" className="inline-flex items-center gap-2 rounded-xl bg-[#FF5533] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-500/25 hover:bg-[#E64424] transition">
             <Icon name="plus" /> Submit Content
           </Link>
         </div>
@@ -53,7 +53,7 @@ export default function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat title="Total Submissions" value={total} note="Across text, image & PDF" noteClass="text-slate-500" icon="doc" iconClass="text-slate-700" />
         <Stat title="Pending Human Sign-Off" value={pending} note="Awaiting reviewer action" noteClass="text-amber-700" icon="clock" iconClass="text-amber-500" />
-        <Stat title="Open Pre-Pub Findings" value={stats.open_findings} note="In items under review or needing changes" noteClass="text-blue-700" icon="alert" iconClass="text-blue-500" />
+        <Stat title="Open Pre-Pub Findings" value={stats.open_findings} note="In items under review or needing changes" noteClass="text-[#FF5533]" icon="alert" iconClass="text-[#FF5533]" />
         <Stat title="Approved Knowledge Items" value={stats.knowledge.approved ?? 0} note={`${stats.knowledge.pending ?? 0} awaiting admin approval`} noteClass="text-emerald-700" icon="book" iconClass="text-emerald-500" />
       </div>
 
@@ -68,22 +68,22 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-slate-500">Live multi-tenant compliance scoring, rule violation trends, and auto-fix adoption.</p>
             </div>
-            <Link to="/knowledge" className="text-xs font-semibold text-indigo-600 hover:underline">
+            <Link to="/knowledge" className="text-xs font-semibold text-[#FF5533] hover:underline">
               Manage in Rule Studio →
             </Link>
           </div>
 
           <div className="mt-5 grid gap-6 md:grid-cols-3">
             {/* Health Score */}
-            <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white p-4">
-              <div className="text-xs font-semibold text-indigo-900">Overall Compliance Score</div>
+            <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white p-4">
+              <div className="text-xs font-bold text-slate-800">Overall Compliance Score</div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-4xl font-black text-indigo-700">{analytics.compliance_score}%</span>
+                <span className="text-4xl font-black text-[#FF5533]">{analytics.compliance_score}%</span>
                 <span className={`text-xs font-semibold ${analytics.compliance_score >= 80 ? "text-emerald-600" : "text-amber-600"}`}>
                   {analytics.compliance_score >= 80 ? "Strong Adherence" : "Requires Attention"}
                 </span>
               </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-indigo-100/60 pt-2">
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-600 border-t border-orange-100/60 pt-2">
                 <span>Auto-fix adoption</span>
                 <span className="font-bold text-slate-800">{analytics.fix_rate}%</span>
               </div>
@@ -157,7 +157,7 @@ export default function Dashboard() {
                   <td className="px-3 py-4"><FindingChips stats={s.findings} /></td>
                   <td className="px-3 py-4"><StatusBadge value={s.status} /></td>
                   <td className="px-5 py-4 text-right">
-                    <Link to={`/submissions/${s.id}`} className="text-sm font-semibold text-blue-700 hover:underline">Inspect →</Link>
+                    <Link to={`/submissions/${s.id}`} className="text-sm font-semibold text-[#FF5533] hover:text-[#E64424] hover:underline">Inspect →</Link>
                   </td>
                 </tr>
               ))}

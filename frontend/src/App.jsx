@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import Gallery from "./pages/Gallery";
 import Knowledge from "./pages/Knowledge";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import PublicSession from "./pages/PublicSession";
 import Register from "./pages/Register";
@@ -18,9 +19,9 @@ function Workspace() {
 
   if (loadingAuth) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <div className="flex h-screen items-center justify-center bg-white text-slate-500">
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FF5533] border-t-transparent" />
           <span className="text-sm font-medium">Loading workspace…</span>
         </div>
       </div>
@@ -34,7 +35,7 @@ function Workspace() {
   );
 
   if (!hasToken) {
-    return <Navigate to="/login" replace />;
+    return <Landing />;
   }
 
   return (
@@ -58,6 +59,7 @@ function Workspace() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/welcome" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />

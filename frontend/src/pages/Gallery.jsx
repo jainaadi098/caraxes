@@ -129,7 +129,7 @@ export default function Gallery() {
               <button
                 key={value}
                 onClick={() => { setType(value); setPage(1); }}
-                className={`rounded-full px-3 py-1.5 text-sm ${type === value ? "bg-indigo-600 text-white" : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
+                className={`rounded-full px-3 py-1.5 text-sm ${type === value ? "bg-[#FF5533] text-white shadow-sm shadow-orange-500/20" : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
               >
                 {name}
               </button>

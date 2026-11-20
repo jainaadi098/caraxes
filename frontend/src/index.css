@@ -1,1 +1,55 @@
 @import "tailwindcss";
+
+@layer utilities {
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.75;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 4s ease-in-out infinite;
+  }
+
+  .bg-radial-coral {
+    background: radial-gradient(ellipse at 50% 20%, rgba(255, 85, 51, 0.12), rgba(255, 255, 255, 0) 70%);
+  }
+
+  .bg-radial-peach {
+    background: radial-gradient(circle at 80% 20%, rgba(255, 120, 80, 0.10), transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(255, 85, 51, 0.08), transparent 60%);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}

@@ -50,7 +50,7 @@ export default function PublicSession() {
         <p className="mt-2 text-sm text-gray-600">
           It may have been unpublished by its owner, or the link may be incorrect.
         </p>
-        <Link to="/gallery" className="mt-5 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+        <Link to="/gallery" className="mt-5 inline-block rounded-lg bg-[#FF5533] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-orange-500/20 hover:bg-[#E64424]">
           Browse the public gallery
         </Link>
       </div>
@@ -62,7 +62,7 @@ export default function PublicSession() {
 
   return (
     <article className="mx-auto max-w-3xl space-y-5">
-      <Link to="/gallery" className="text-xs text-indigo-700 hover:underline">← Public gallery</Link>
+      <Link to="/gallery" className="text-xs font-medium text-[#FF5533] hover:underline">← Public gallery</Link>
 
       {data.visibility === "unlisted" && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">

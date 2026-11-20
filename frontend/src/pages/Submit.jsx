@@ -62,7 +62,7 @@ export default function Submit() {
                 type="button"
                 key={s.tag}
                 onClick={() => { setTitle(s.title); setText(s.text); setError(""); }}
-                className="rounded-lg border border-slate-200 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
+                className="rounded-lg border border-slate-200 p-3 text-left transition hover:border-[#FF5533]/40 hover:bg-orange-50/40"
               >
                 <div className={`text-[10px] font-bold tracking-wider ${s.tagClass}`}>{s.tag}</div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">{s.title}</div>
@@ -93,7 +93,7 @@ export default function Submit() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Q4 Product Launch Newsletter"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#FF5533] focus:outline-none focus:ring-2 focus:ring-orange-100"
           />
         </div>
 
@@ -108,11 +108,11 @@ export default function Submit() {
               onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
               rows={10}
               placeholder="Paste your marketing copy, press release or AI-generated draft here to check it against your brand guidelines…"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#FF5533] focus:outline-none focus:ring-2 focus:ring-orange-100"
             />
           </div>
         ) : (
-          <label className="block cursor-pointer rounded-lg border-2 border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-600 hover:border-blue-400">
+          <label className="block cursor-pointer rounded-lg border-2 border-dashed border-slate-300 px-4 py-12 text-center text-sm text-slate-600 hover:border-[#FF5533]">
             {file ? file.name : mode === "image" ? "Click to choose a PNG, JPG or WebP image" : "Click to choose a PDF (up to 10 pages)"}
             <input
               type="file"
@@ -131,7 +131,7 @@ export default function Submit() {
           </p>
           <button
             disabled={busy || (mode === "text" ? !text.trim() : !file)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#FF5533] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:bg-[#E64424] disabled:opacity-50"
           >
             <Icon name="shield" /> {busy ? "Submitting…" : "Run Pre-Publication Check"}
           </button>

@@ -13,11 +13,14 @@ const MAIN = [
 const LOOP = [
   { to: "/knowledge", label: "Brand Knowledge", icon: "book" },
   { to: "/gallery", label: "Public Gallery", icon: "globe" },
+  { to: "/welcome", label: "Product Tour", icon: "info" },
 ];
 
 const navClass = ({ isActive }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-    isActive ? "bg-blue-600 text-white shadow-sm" : "text-slate-300 hover:bg-white/5 hover:text-white"
+  `flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+    isActive
+      ? "bg-[#FF5533] text-white shadow-md shadow-orange-500/20"
+      : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
   }`;
 
 function titleFor(pathname) {
@@ -69,34 +72,34 @@ export default function AppShell({ children }) {
   const loop = LOOP;
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-slate-950 p-4 md:flex">
+    <div className="flex min-h-screen bg-slate-50/30">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200/80 bg-slate-50/70 p-4 md:flex">
         <div className="flex items-center gap-3 px-1 py-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FF5533] to-[#FF7A59] text-white shadow-md shadow-orange-500/25">
             <Icon name="shield" className="h-5 w-5" />
           </span>
           <div>
-            <div className="text-sm font-bold tracking-wide text-white">CARAXES</div>
-            <div className="text-[11px] text-slate-400">Brand Governance OS</div>
+            <div className="text-sm font-extrabold tracking-wide text-slate-900">CARAXES</div>
+            <div className="text-[10px] font-semibold text-[#FF5533]">Brand Governance OS</div>
           </div>
         </div>
 
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Active workspace</div>
-        <div className="mt-2 rounded-lg border border-slate-800 bg-slate-900 p-3">
+        <div className="mt-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Active workspace</div>
+        <div className="mt-2 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="truncate">{orgName}</span>
             </span>
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
-              {import.meta.env.PROD ? "PROD" : "DEV"}
+            <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-[#FF5533]">
+              {import.meta.env.PROD ? "PROD" : "LIVE"}
             </span>
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">{stats?.knowledge?.approved ?? 0} approved knowledge items</div>
+          <div className="mt-1 text-[11px] text-slate-500">{stats?.knowledge?.approved ?? 0} active rules</div>
           <select
             value={orgId}
             onChange={(e) => chooseOrg(e.target.value)}
-            className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200"
+            className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-800 focus:border-[#FF5533] focus:outline-none"
           >
             <option value="">Select workspace…</option>
             {orgs.map((o) => (
@@ -110,12 +113,12 @@ export default function AppShell({ children }) {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Workspace name"
-                className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white"
+                className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
               />
-              <button className="rounded-md bg-blue-600 px-2 text-xs text-white">Add</button>
+              <button className="rounded-md bg-[#FF5533] px-2 text-xs font-bold text-white">Add</button>
             </form>
           ) : (
-            <button onClick={() => setAdding(true)} className="mt-2 text-[11px] text-blue-300 hover:underline">
+            <button onClick={() => setAdding(true)} className="mt-2 text-[11px] font-semibold text-[#FF5533] hover:underline">
               + New workspace
             </button>
           )}
@@ -127,13 +130,13 @@ export default function AppShell({ children }) {
               <Icon name={item.icon} className="h-[18px] w-[18px]" />
               <span className="flex-1">{item.label}</span>
               {item.badge && queueCount > 0 && (
-                <span className="rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-slate-900">{queueCount}</span>
+                <span className="rounded-full bg-[#FF5533] px-1.5 text-[10px] font-bold text-white shadow-sm">{queueCount}</span>
               )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Governance loop</div>
+        <div className="mt-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Governance loop</div>
         <nav className="mt-2 space-y-1">
           {loop.map((item) => (
             <NavLink key={item.to} to={item.to} className={navClass}>
@@ -144,64 +147,64 @@ export default function AppShell({ children }) {
         </nav>
 
         {currentUser && (
-          <div className="mt-auto mb-2 rounded-lg border border-slate-800 bg-slate-900/90 p-3">
+          <div className="mt-auto mb-2 rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="truncate text-xs font-semibold text-white">
+              <span className="truncate text-xs font-bold text-slate-800">
                 {currentUser.full_name || currentUser.email}
               </span>
-              <span className="rounded bg-blue-900/60 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-300">
+              <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#FF5533]">
                 {currentUser.role || "admin"}
               </span>
             </div>
-            <div className="mt-0.5 truncate text-[11px] text-slate-400">
+            <div className="mt-0.5 truncate text-[11px] text-slate-500">
               {currentUser.email || "Active Member"}
             </div>
           </div>
         )}
 
-        <div className="rounded-lg border border-slate-800 p-3">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
             Hybrid Engine
-            <span className={engine === "ready" ? "text-emerald-400" : engine === "offline" ? "text-red-400" : "text-slate-400"}>
+            <span className={engine === "ready" ? "text-emerald-500" : engine === "offline" ? "text-red-500" : "text-slate-400"}>
               ● {engine === "ready" ? "Ready" : engine === "offline" ? "Offline" : "Checking"}
             </span>
           </div>
           <div className="mt-1 text-[11px] leading-4 text-slate-500">
-            Deterministic checks + Gemini RAG. Humans decide.
+            Deterministic Vale + Gemini RAG.
           </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/90 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-slate-900">{titleFor(pathname)}</h1>
-              <span className="hidden rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 sm:inline">{pathname}</span>
+              <h1 className="text-lg font-extrabold text-slate-900">{titleFor(pathname)}</h1>
+              <span className="hidden rounded-lg bg-orange-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-[#FF5533] sm:inline">{pathname}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="hidden items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 xl:inline-flex">
+              <span className="hidden items-center gap-1.5 rounded-full border border-orange-200/70 bg-orange-50/60 px-3 py-1 text-xs font-semibold text-[#FF5533] xl:inline-flex">
                 <Icon name="info" className="h-3.5 w-3.5" />
                 AI-assisted governance • Citation-grounded • Human sign-off required
               </span>
 
               {/* User Profile & Sign Out Button */}
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 shadow-sm">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white uppercase shadow-sm">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-[#FF5533] to-[#FF7A59] text-xs font-bold text-white uppercase shadow-sm">
                   {(currentUser?.full_name || currentUser?.email || "U")[0]}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-semibold text-slate-900 leading-tight">
+                  <div className="text-xs font-bold text-slate-900 leading-tight">
                     {currentUser?.full_name || "Company User"}
                   </div>
-                  <div className="text-[10px] text-slate-500 capitalize">
+                  <div className="text-[10px] font-semibold text-slate-500 capitalize">
                     {currentUser?.role || "admin"}
                   </div>
                 </div>
                 <button
                   onClick={logout}
                   title="Sign out of workspace"
-                  className="ml-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition"
+                  className="ml-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:border-orange-200 hover:text-[#FF5533] transition"
                 >
                   Sign out
                 </button>
