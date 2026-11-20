@@ -34,7 +34,8 @@ def mock_supabase():
          patch("app.services.violation_manager.get_supabase", return_value=mock_client), \
          patch("app.api.vale.get_supabase", return_value=mock_client), \
          patch("app.api.knowledge_items.get_supabase", return_value=mock_client), \
-         patch("app.api.analytics.get_supabase", return_value=mock_client):
+         patch("app.api.analytics.get_supabase", return_value=mock_client), \
+         patch("app.api.auth.get_supabase", return_value=mock_client):
         yield mock_client
 
 

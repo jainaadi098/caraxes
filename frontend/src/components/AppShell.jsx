@@ -31,7 +31,7 @@ function titleFor(pathname) {
 }
 
 export default function AppShell({ children }) {
-  const { orgs, orgId, error, chooseOrg, createOrg } = useApp();
+  const { orgs, orgId, error, chooseOrg, createOrg, currentUser, logout } = useApp();
   const { pathname } = useLocation();
   const [stats, setStats] = useState(null);
   const [engine, setEngine] = useState("checking");
@@ -143,7 +143,23 @@ export default function AppShell({ children }) {
           ))}
         </nav>
 
-        <div className="mt-auto rounded-lg border border-slate-800 p-3">
+        {currentUser && (
+          <div className="mt-auto mb-2 rounded-lg border border-slate-800 bg-slate-900/90 p-3">
+            <div className="flex items-center justify-between">
+              <span className="truncate text-xs font-semibold text-white">
+                {currentUser.full_name || currentUser.email}
+              </span>
+              <span className="rounded bg-blue-900/60 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-300">
+                {currentUser.role || "admin"}
+              </span>
+            </div>
+            <div className="mt-0.5 truncate text-[11px] text-slate-400">
+              {currentUser.email || "Active Member"}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-slate-800 p-3">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
             Hybrid Engine
             <span className={engine === "ready" ? "text-emerald-400" : engine === "offline" ? "text-red-400" : "text-slate-400"}>
@@ -168,6 +184,28 @@ export default function AppShell({ children }) {
                 <Icon name="info" className="h-3.5 w-3.5" />
                 AI-assisted governance • Citation-grounded • Human sign-off required
               </span>
+
+              {/* User Profile & Sign Out Button */}
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 shadow-sm">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white uppercase shadow-sm">
+                  {(currentUser?.full_name || currentUser?.email || "U")[0]}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-xs font-semibold text-slate-900 leading-tight">
+                    {currentUser?.full_name || "Company User"}
+                  </div>
+                  <div className="text-[10px] text-slate-500 capitalize">
+                    {currentUser?.role || "admin"}
+                  </div>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Sign out of workspace"
+                  className="ml-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-4 pb-2 md:hidden">
