@@ -176,12 +176,6 @@ export default function Landing() {
             ) : (
               <>
                 <Link
-                  to="/submit"
-                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-[#FF5533] hover:text-[#FF5533]"
-                >
-                  Try Workspace
-                </Link>
-                <Link
                   to="/login"
                   className="rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:text-[#FF5533]"
                 >
@@ -219,12 +213,21 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link
-              to="/submit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424] hover:shadow-orange-500/35"
-            >
-              Launch Pre-Publication Check →
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                to="/submit"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424] hover:shadow-orange-500/35"
+              >
+                Go to Workspace →
+              </Link>
+            ) : (
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424] hover:shadow-orange-500/35"
+              >
+                Get started for free →
+              </Link>
+            )}
             <a
               href="#simulator"
               className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
@@ -681,18 +684,29 @@ export default function Landing() {
             Set up your organization workspace, extract your style guidelines in seconds, and eliminate unapproved copy before publication.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/submit"
-              className="rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424]"
-            >
-              Launch Pre-Publication Check →
-            </Link>
-            <Link
-              to="/login"
-              className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
-            >
-              Sign in to Company Account
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                to="/submit"
+                className="rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424]"
+              >
+                Go to Workspace →
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="rounded-xl bg-[#FF5533] px-6 py-3 text-sm font-bold text-white shadow-xl shadow-orange-500/25 transition hover:bg-[#E64424]"
+                >
+                  Create Company Account →
+                </Link>
+                <Link
+                  to="/login"
+                  className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+                >
+                  Sign in to Company Account
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -708,7 +722,6 @@ export default function Landing() {
             <span>• Brand Governance OS</span>
           </div>
           <div className="flex gap-6">
-            <Link to="/submit" className="hover:text-[#FF5533]">Pre-Publication Check</Link>
             <Link to="/gallery" className="hover:text-[#FF5533]">Public Gallery</Link>
             <Link to="/login" className="hover:text-[#FF5533]">Company Login</Link>
             <Link to="/register" className="hover:text-[#FF5533]">Register Workspace</Link>

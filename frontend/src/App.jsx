@@ -15,7 +15,7 @@ import Submissions from "./pages/Submissions";
 import Submit from "./pages/Submit";
 
 function Workspace() {
-  const { orgId, loadingAuth } = useApp();
+  const { orgId, loadingAuth, isAuthenticated } = useApp();
 
   if (loadingAuth) {
     return (
@@ -26,6 +26,14 @@ function Workspace() {
         </div>
       </div>
     );
+  }
+
+  const hasAuth = Boolean(
+    isAuthenticated || localStorage.getItem("caraxes_auth_token")
+  );
+
+  if (!hasAuth) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
